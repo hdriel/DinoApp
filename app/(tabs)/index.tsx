@@ -1,74 +1,181 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import { useEffect, useState } from "react";
+import { Text, View, FlatList, TouchableOpacity, StyleSheet } from "react-native";
+import axios from "axios";
+import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+const API_URL = "https://dinoapi.brunosouzadev.com/api/dinosaurs";
+
+interface Dinosaur {
+  _id: string;
+  name: string;
+  image?: string;
+}
 
 export default function HomeScreen() {
+  const [dinosaurs, setDinosaurs] = useState<Dinosaur[]>([]);
+  const [error, setError] = useState<string>("");
+  const router = useRouter();
+
+  useEffect(() => {
+    async function fetchDinosaurs() {
+      try {
+        const response = await axios.get(API_URL);
+        setDinosaurs(response.data);
+      } catch (err: any) {
+        setError("Failed to load dinosaurs.");
+      }
+    }
+    fetchDinosaurs();
+  }, []);
+
+  const addToFavorites = async (dino: Dinosaur) => {
+    try {
+      const storedFavorites = await AsyncStorage.getItem("favorites");
+      let favoritesArray = storedFavorites ? JSON.parse(storedFavorites) : [];
+
+      // בדיקה אם הדינוזאור כבר קיים במועדפים
+      if (!favoritesArray.some((item: any) => item.name === dino.name)) {
+        favoritesArray.push({ name: dino.name });
+
+        // שמירת הרשימה
+        await AsyncStorage.setItem("favorites", JSON.stringify(favoritesArray));
+        console.log("✅ Added to favorites:", JSON.stringify(favoritesArray, null, 2));
+      } else {
+        console.log("⚠️ Already in favorites:", dino.name);
+      }
+    } catch (error) {
+      console.error("❌ Error saving favorite:", error);
+    }
+  };
+
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12'
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <View style={styles.container}>
+      <Text style={styles.header}>🦖 Dinosaur List</Text>
+
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+
+      <FlatList
+        data={dinosaurs}
+        keyExtractor={(item) => item._id}
+        renderItem={({ item, index }) => (
+          <View style={[styles.dinoContainer, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}>
+
+            {/* שם הדינוזאור */}
+            <View style={styles.nameContainer}>
+              <TouchableOpacity onPress={() => router.push(`/${encodeURI(item.name)}`)}>
+                <Text style={styles.dinoName}>🦕 {item.name}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* כפתור Existed - באמצע */}
+            <View style={styles.middleContainer}>
+              <TouchableOpacity onPress={() => router.push(`/existed/${encodeURIComponent(item.name)}`)}>
+                <Text style={styles.existedLink}>📅 Existed</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* כפתור המועדפים */}
+            <View style={styles.favoriteContainer}>
+              <TouchableOpacity style={styles.favoriteButton} onPress={() => addToFavorites(item)}>
+                <Text style={styles.favoriteButtonText}>💛</Text>
+              </TouchableOpacity>
+            </View>
+
+          </View>
+        )}
+      />
+
+      {/* כפתור מעבר לעמוד המועדפים */}
+      <TouchableOpacity style={styles.goToFavoritesButton} onPress={() => router.push("/favorites")}>
+        <Text style={styles.goToFavoritesButtonText}>💖 מועדפים</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: "#f0f8ff",
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  header: {
+    fontSize: 24,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 20,
+    color: "#333",
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  dinoContainer: {
+    flexDirection: "row",
+    alignItems: "center", // מבטיח שכל הרכיבים יהיו מיושרים אנכית
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    marginBottom: 10,
+    backgroundColor: "#ffffff",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 1, height: 1 },
+    elevation: 2,
+  },
+  nameContainer: {
+    flex: 1, // שם הדינוזאור תופס שטח קבוע
+  },
+  middleContainer: {
+    flex: 1, // כפתור Existed תופס שטח קבוע באמצע
+    alignItems: "center", // ממקם אותו בדיוק באמצע
+  },
+  favoriteContainer: {
+    flex: 1, // כפתור המועדפים תופס שטח קבוע
+    alignItems: "flex-end", // ממקם אותו בצד ימין
+  },
+  dinoName: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  existedLink: {
+    fontSize: 16,
+    color: "#007BFF",
+    textDecorationLine: "underline",
+    textAlign: "center", // מוודא שהתוכן מיושר באמצע
+  },
+  favoriteButton: {
+    backgroundColor: "#FFD700", // ⭐ צבע צהוב זהב
+    padding: 10,
+    borderRadius: 50,
+  },
+  favoriteButtonText: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  rowEven: {
+    backgroundColor: "#E0F7FA", // 💙 כחול בהיר
+  },
+  rowOdd: {
+    backgroundColor: "#FFEBEE", // ❤️ ורוד בהיר
+  },
+  goToFavoritesButton: {
+    backgroundColor: "#FF4081", // 💖 צבע ורוד
+    padding: 12,
+    borderRadius: 10,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  goToFavoritesButtonText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "white",
+  },
+  error: {
+    color: "red",
+    fontSize: 16,
+    textAlign: "center",
   },
 });
+
