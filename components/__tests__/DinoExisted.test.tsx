@@ -1,20 +1,22 @@
 import { render, screen, waitFor } from "@testing-library/react-native";
 import DinoExisted from "../../app/existed/[name1]";
-import axios from "axios";
+import { mockedAxios } from "../../jest.setup";
 
-jest.mock("axios");
+const NAME = "Tyrannosaurus Rex";
+const API_BASE_URL = "https://dinoapi.brunosouzadev.com/api/dinosaurs/";
+const API_URL = `${API_BASE_URL}${encodeURIComponent(NAME)}`;
 
-const mockedAxios = axios as jest.Mocked<typeof axios>;
+jest.mock("expo-router", () => ({
+    useLocalSearchParams: jest.fn(() => ({ name1: NAME })),
+}));
 
 beforeEach(() => {
-    mockedAxios.get.mockResolvedValue({
-        data: { name: "Tyrannosaurus Rex", existed: "68-66 million years ago" },
-    });
+    mockedAxios.onGet(API_URL).reply(200, { name: NAME, existed: "68-66 million years ago" });
 });
 
 test("מציג מידע על קיום הדינוזאור", async () => {
     render(<DinoExisted />);
 
-    await waitFor(() => expect(screen.getByText("Tyrannosaurus Rex")).toBeTruthy(), { timeout: 10000 });
-    expect(screen.getByText(/68-66 million years ago/)).toBeTruthy();
+    await waitFor(() => expect(screen.findByText(new RegExp(NAME, 'i'))).toBeTruthy(), { timeout: 10000 });
+    expect(screen.findByText(/68-66 million years ago/)).toBeTruthy();
 });

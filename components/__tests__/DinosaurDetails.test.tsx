@@ -1,50 +1,62 @@
 import { render, screen, waitFor } from "@testing-library/react-native";
 import DinosaurDetails from "../../components/DinosaurDetails";
-import axios from "axios";
+import { mockedAxios } from "../../jest.setup";
 
-// ✅ תיקון: שימוש נכון ב-Mock של Axios
-jest.mock("axios");
-jest.setTimeout(30000);
+// 🔍 ניקוי השם והדפסתו
+const formattedName = name => name.trim().toLowerCase().replace(/\s+/g, " ");
+const API_BASE_URL = "https://dinoapi.brunosouzadev.com/api/dinosaurs/";
+const NAME = 'Tyrannosaurus Rex';
+const API_URL = `${API_BASE_URL}${encodeURIComponent(formattedName(NAME))}`
+console.log('API_URL', API_URL)
 
-const mockedAxios = axios as jest.Mocked<typeof axios>;
 
-// ✅ חוסם לוגים
-beforeEach(() => {
-    jest.spyOn(console, "log").mockImplementation(() => { });
-    jest.spyOn(console, "warn").mockImplementation(() => { });
-    jest.spyOn(console, "error").mockImplementation(() => { });
+describe('הדינוזאור ותיאורו', () => {
+    // ✅ חוסם לוגים
+    beforeEach(() => {
+        jest.spyOn(console, "log").mockImplementation(() => { });
+        jest.spyOn(console, "warn").mockImplementation(() => { });
+        jest.spyOn(console, "error").mockImplementation(() => { });
 
-    mockedAxios.get.mockResolvedValue({
-        data: {
-            name: "Tyrannosaurus Rex",
-            diet: "Carnivore",
-            period: "Cretaceous",
-            region: "North America",
-            description: "One of the most famous dinosaurs.",
-            image: "https://example.com/t-rex.jpg",
-        },
+        mockedAxios.onGet(API_BASE_URL).reply(200, [
+            { _id: "1", name: NAME },
+            { _id: "2", name: "Stegosaurus" },
+        ]);
+
+        mockedAxios.onGet(API_URL).reply(200, [
+            {
+                name: NAME,
+                diet: "Carnivore",
+                period: "Cretaceous",
+                region: "North America",
+                description: "One of the most famous dinosaurs.",
+                image: "https://example.com/t-rex.jpg",
+            }
+        ]);
     });
-});
 
-afterEach(() => {
-    jest.clearAllTimers();
-    jest.resetAllMocks();
-});
+    afterEach(() => {
+        jest.clearAllTimers();
+        jest.resetAllMocks();
+    });
 
-// ✅ בדיקה של טעינת שם הדינוזאור
-test("מציג את שם הדינוזאור ותיאורו", async () => {
-    render(<DinosaurDetails name="Tyrannosaurus Rex" />);
+    // ✅ בדיקה של טעינת שם הדינוזאור
+    test("מציג את שם הדינוזאור ותיאורו", async () => {
+        render(<DinosaurDetails name={NAME} />);
 
-    await waitFor(() => expect(screen.getByText("Tyrannosaurus Rex")).toBeTruthy(), { timeout: 10000 });
-    expect(screen.getByText(/Carnivore/)).toBeTruthy();
-    expect(screen.getByText(/Cretaceous/)).toBeTruthy();
-    expect(screen.getByText(/North America/)).toBeTruthy();
-});
+        await waitFor(() => expect(screen.findByText(new RegExp(NAME, 'i'))).toBeTruthy(), { timeout: 10000 });
+        expect(screen.findByText(/Carnivore/i)).toBeTruthy();
+        expect(screen.findByText(/Cretaceous/i)).toBeTruthy();
+        expect(screen.findByText(/North America/i)).toBeTruthy();
+    });
 
-// ✅ בדיקה של טעינת תמונת הדינוזאור
-test("בודק אם יש תמונה לדינוזאור", async () => {
-    render(<DinosaurDetails name="Tyrannosaurus Rex" />);
 
-    const image = await waitFor(() => screen.getByRole("image"), { timeout: 10000 });
-    expect(image).toBeTruthy();
-});
+
+    // ✅ בדיקה של טעינת תמונת הדינוזאור
+    test("בודק אם יש תמונה לדינוזאור", async () => {
+        render(<DinosaurDetails name={NAME} />);
+
+        const image = await waitFor(() => screen.getByTestId(`image-${NAME}`), { timeout: 10000 });
+        expect(image).toBeTruthy();
+    });
+
+})

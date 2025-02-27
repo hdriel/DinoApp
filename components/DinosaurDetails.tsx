@@ -28,7 +28,9 @@ export default function DinosaurDetails({ name }: { name: string }) {
                 console.log(`📡 מחפש דינוזאור בשם: "${formattedName}" (אורך: ${formattedName.length})`);
 
                 // 🔍 שליחת השם המעובד ל-API
-                const response = await axios.get(`${API_BASE_URL}${encodeURIComponent(formattedName)}`);
+                const API_URL = `${API_BASE_URL}${encodeURIComponent(formattedName)}`;
+                console.log('API_URL', API_URL);
+                const response = await axios.get(API_URL);
 
                 console.log("📩 תגובת ה-API:", response.data);
 
@@ -88,7 +90,13 @@ export default function DinosaurDetails({ name }: { name: string }) {
             <h1>{dino.name || <span style={{ color: "red" }}>❌ אין שם</span>}</h1>
 
             {dino.image ? (
-                <img src={dino.image} alt={dino.name} style={{ width: "300px", height: "auto", borderRadius: "10px" }} />
+                <img
+                    src={dino.image}
+                    alt={dino.name}
+                    accessible
+                    testID={`image-${dino.name}`}
+                    style={{ width: "300px", height: "auto", borderRadius: "10px" }}
+                />
             ) : (
                 <p style={{ color: "gray", fontWeight: "bold" }}>🖼 אין תמונה</p>
             )}

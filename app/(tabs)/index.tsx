@@ -23,7 +23,7 @@ export default function HomeScreen() {
         const response = await axios.get(API_URL);
         setDinosaurs(response.data);
       } catch (err: any) {
-        setError("Failed to load dinosaurs.");
+        setError("Failed to load dinosaurs." + err);
       }
     }
     fetchDinosaurs();

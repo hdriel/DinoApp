@@ -1,19 +1,13 @@
 import { render, screen, waitFor } from "@testing-library/react-native";
 import HomeScreen from "../../app/(tabs)/index";
-import axios from "axios";
-
-// ✅ Mock ל- `axios`
-jest.mock("axios");
-
-const mockedAxios = axios as jest.Mocked<typeof axios>;
+import { mockedAxios } from "../../jest.setup";
+const API_URL = "https://dinoapi.brunosouzadev.com/api/dinosaurs";
 
 beforeEach(() => {
-    mockedAxios.get.mockResolvedValue({
-        data: [
-            { _id: "1", name: "Brachiosaurus" },
-            { _id: "2", name: "Stegosaurus" },
-        ],
-    });
+    mockedAxios.onGet(API_URL).reply(200, [
+        { _id: "1", name: "Brachiosaurus" },
+        { _id: "2", name: "Stegosaurus" },
+    ]);
 });
 
 afterEach(() => {
@@ -25,7 +19,8 @@ test("מציג רשימת דינוזאורים", async () => {
     render(<HomeScreen />);
 
     await waitFor(() => {
-        expect(screen.getByText("Brachiosaurus")).toBeTruthy();
-        expect(screen.getByText("Stegosaurus")).toBeTruthy();
+        expect(screen.getByText(/Brachiosaurus/i)).toBeTruthy();
+        expect(screen.getByText(/Stegosaurus/i)).toBeTruthy();
     }, { timeout: 20000 });
+
 }, 25000);
