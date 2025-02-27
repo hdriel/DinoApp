@@ -43,9 +43,7 @@ test("בודק לחיצה על שם דינוזאור במועדפים", async ()
 
     const dinoButton = await waitFor(() => screen.getByText(/Triceratops/i), { timeout: 10000 });
 
-    await act(async () => {
-        fireEvent.press(dinoButton);
-    });
+    await act(async () => fireEvent.press(dinoButton));
 
     expect(mockPush).toHaveBeenCalledWith("/triceratops");
 });
